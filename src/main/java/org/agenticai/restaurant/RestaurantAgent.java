@@ -8,7 +8,7 @@ import jakarta.enterprise.context.SessionScoped;
 import org.agenticai.restaurant.booking.BookingService;
 import org.agenticai.restaurant.weather.WeatherService;
 
-@RegisterAiService(modelName = "tool-use")
+@RegisterAiService() //modelName = "tool-use")
 @SystemMessage("""
         You are an AI dealing with the booking for a restaurant.
         Do not invent the customer name or party size, but explicitly ask for them if not provided. 

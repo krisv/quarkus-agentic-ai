@@ -1,0 +1,71 @@
+{
+  "id": "PromptChaining",
+  "version": "1.0",
+  "name": "PromptChaining",
+  "description": "PromptChaining",
+  "start": "generateNovel",
+  "functions": [
+    {
+      "name": "generateNovel",
+      "type": "custom", 
+      "operation": "service:java:org.agenticai.promptchaining.WriterResource::generateNovel"
+    },
+    {
+      "name": "editNovelStyle",
+      "type": "custom", 
+      "operation": "service:java:org.agenticai.promptchaining.WriterResource::editNovelStyle"
+    },
+    {
+      "name": "editNovelAudience",
+      "type": "custom", 
+      "operation": "service:java:org.agenticai.promptchaining.WriterResource::editNovelAudience"
+    }
+  ],
+  "states": [
+    {
+      "name": "generateNovel",
+      "type": "operation",
+      "actions": [
+        {
+          "name": "generateNovel",
+          "functionRef": {
+            "refName": "generateNovel",
+            "arguments": {
+              "topic": "\" \\(.topic) \""
+            }
+          },
+          "actionDataFilter": {
+            "toStateData": "${ .novel }"
+          }
+        }
+      ],
+      "transition": "editNovelStyle"
+    },
+    {
+      "name": "editNovelStyle",
+      "type": "operation",
+      "actions": [
+        {
+          "name": "editNovelStyle",
+          "functionRef": {
+            "refName": "editNovelStyle"
+          }
+        }
+      ],
+      "transition": "editNovelAudience"
+    },
+    {
+      "name": "editNovelAudience",
+      "type": "operation",
+      "actions": [
+        {
+          "name": "editNovelAudience",
+          "functionRef": {
+            "refName": "editNovelAudience"
+          }
+        }
+      ],
+      "end": true
+    }
+  ]
+}

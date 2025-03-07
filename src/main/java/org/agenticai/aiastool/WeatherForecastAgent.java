@@ -5,7 +5,7 @@ import io.quarkiverse.langchain4j.RegisterAiService;
 import org.agenticai.aiastool.geo.GeoCodingService;
 import org.agenticai.aiastool.weather.WeatherForecastService;
 
-@RegisterAiService(tools = { CityExtractorAgent.class, WeatherForecastService.class, GeoCodingService.class}, modelName = "tool-use")
+@RegisterAiService(tools = { CityExtractorAgent.class, WeatherForecastService.class, GeoCodingService.class}) //, modelName = "tool-use")
 public interface WeatherForecastAgent {
 
     @SystemMessage("""

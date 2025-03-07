@@ -4,7 +4,7 @@ import dev.langchain4j.service.SystemMessage;
 import io.quarkiverse.langchain4j.RegisterAiService;
 import io.quarkiverse.langchain4j.ToolBox;
 
-@RegisterAiService(modelName = "big-model")
+@RegisterAiService() //modelName = "big-model")
 public interface IntelligentAgent {
 
     @SystemMessage("""
