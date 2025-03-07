@@ -13,7 +13,7 @@
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.version>3.18.3</quarkus.platform.version>
-        <quarkus.langchain4j.version>0.25.0.CR1</quarkus.langchain4j.version>
+        <quarkus.langchain4j.version>0.25.0.CR2</quarkus.langchain4j.version>
         <surefire-plugin.version>3.5.2</surefire-plugin.version>
         <skipITs>true</skipITs>
     </properties>
@@ -108,6 +108,18 @@
             <groupId>org.kie.kogito</groupId>
             <artifactId>kogito-serverless-workflow-executor</artifactId>
             <type>pom</type>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkiverse.langchain4j</groupId>
+            <artifactId>quarkus-langchain4j-testing-scorer-junit5</artifactId>
+            <version>${quarkus.langchain4j.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.27.3</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
