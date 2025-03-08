@@ -5,9 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.logging.Log;
 import io.serverlessworkflow.api.Workflow;
 
-import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
