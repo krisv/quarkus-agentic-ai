@@ -45,11 +45,13 @@ public class WriterResource {
             .action(call(java("createResearch", this::createResearch), ".topic")
                 .outputFilter(".research"));
         OperationStateBuilder authorArticle = operation()
-            .action(call(java("authorArticle", this::authorArticle)));
+            .action(call(java("authorArticle", this::authorArticle), ".topic", ".research")
+                .outputFilter(".article"));
         OperationStateBuilder reviewResearch = operation()
-            .action(call(java("reviewResearch", this::reviewResearch)));
+            .action(call(java("reviewResearch", this::countAndReviewResearch)));
         OperationStateBuilder formatResearch = operation()
-            .action(call(java("formatResearch", this::formatResearch)));
+            .action(call(java("formatResearch", this::formatResearch), ".article")
+                .outputFilter(".article"));
         workflow = 
             WorkflowBuilder.workflow("research"). 
                 start(createResearch)
@@ -66,7 +68,7 @@ public class WriterResource {
 
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    @Path("topic/{topic}")
+    @Path("article/topic/{topic}")
     public String hello(String topic) {
         try (StaticWorkflowApplication application = StaticWorkflowApplication.create()) {
             JsonNode result = application.execute(workflow, Map.of("topic", topic, "counter", 0)).getWorkflowdata();
@@ -77,6 +79,9 @@ public class WriterResource {
 
     private int counter1 = 0;
 
+    @POST
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("research/topic/{topic}")
     public String createResearch(String topic) {
         String research;
         switch (counter1++) {
@@ -97,19 +102,31 @@ public class WriterResource {
         return research;
     }
     
-    public Map<String,Object> authorArticle(Map<String,Object> workflowData) {
-        String topic = (String) workflowData.get("topic");
-        String research = (String) workflowData.get("research");
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("author/topic/{topic}")
+    public String authorArticle(String topic, String research) {
         String article = "My article based on research " + research; // creativeWriter.generateNovel(topic);
         Log.infof("Article: %s", article);
-        workflowData.put("article", article);
-        return workflowData;
+        return article;
     }
     
-    private int counter2 = 0;
-    public Map<String,Object> reviewResearch(Map<String,Object> workflowData) {
+    public Map<String,Object> countAndReviewResearch(Map<String,Object> workflowData) {
         String article = (String) workflowData.get("article");
         Integer counter = (Integer) workflowData.get("counter");
+        String review = reviewResearch(article);
+        workflowData.put("review", review);
+        workflowData.put("counter", counter+1);
+        return workflowData;
+    }
+
+    private int counter2 = 0;
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("review")
+    public String reviewResearch(String article) {
         String review;
         switch (counter2++) {
             case 0:
@@ -129,16 +146,16 @@ public class WriterResource {
         }
         // styleEditor.editNovel(novel, style);
         Log.infof("Review: %s", review);
-        workflowData.put("review", review);
-        workflowData.put("counter", counter+1);
-        return workflowData;
+        return review;
     }
 
-    public Map<String,Object> formatResearch(Map<String,Object> workflowData) {
-        String article = (String) workflowData.get("article");
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("format")
+    public String formatResearch(String article) {
         article = article + " formatted"; // audienceEditor.editNovel(novel, audience);
         Log.infof("Formatted article: %s", article);
-        workflowData.put("article", article);
-        return workflowData;
+        return article;
     }
 }

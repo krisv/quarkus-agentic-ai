@@ -1,0 +1,92 @@
+---
+openapi: 3.0.3
+info:
+  title: SonataFlow Plans
+  description: An application that can process plans
+  version: 1.0.0-SNAPSHOT
+servers:
+  - url: http://localhost:8080
+    description: Agentic
+paths:
+  /research/author/topic/{topic}:
+    post:
+      operationId: authorArticle
+      parameters:
+      - name: topic
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+      summary: Author Article
+      tags:
+      - Writer Resource
+  /research/format:
+    post:
+      operationId: formatArticle
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+      summary: Format Research
+      tags:
+      - Writer Resource
+  /research/research/topic/{topic}:
+    post:
+      operationId: researchTopic
+      parameters:
+      - name: topic
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+      summary: Create Research
+      tags:
+      - Writer Resource
+  /research/review:
+    post:
+      operationId: reviewArticle
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+      summary: Review Research
+      tags:
+      - Writer Resource
