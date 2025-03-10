@@ -13,6 +13,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 import java.util.Map;
+import java.util.Random;
 
 import org.kie.kogito.serverless.workflow.executor.StaticWorkflowApplication;
 import org.kie.kogito.serverless.workflow.fluent.OperationStateBuilder;
@@ -25,6 +26,8 @@ import static org.kie.kogito.serverless.workflow.fluent.StateBuilder.operation;
 
 @Path("/research")
 public class WriterResource {
+
+    private boolean useLLM = false;
 
     private final ResearcherAIService researcher;
 
@@ -42,16 +45,13 @@ public class WriterResource {
         this.reviewer = reviewer;
         this.formatter = formatter;
         OperationStateBuilder createResearch = operation()
-            .action(call(java("createResearch", this::createResearch), ".topic")
-                .outputFilter(".research"));
+            .action(call(java("createResearch", this::createResearch)));
         OperationStateBuilder authorArticle = operation()
-            .action(call(java("authorArticle", this::authorArticle), ".topic", ".research")
-                .outputFilter(".article"));
+            .action(call(java("authorArticle", this::authorArticle)));
         OperationStateBuilder reviewResearch = operation()
-            .action(call(java("reviewResearch", this::countAndReviewResearch)));
+            .action(call(java("reviewResearch", this::reviewArticle)));
         OperationStateBuilder formatResearch = operation()
-            .action(call(java("formatResearch", this::formatResearch), ".article")
-                .outputFilter(".article"));
+            .action(call(java("formatResearch", this::formatArticle)));
         workflow = 
             WorkflowBuilder.workflow("research"). 
                 start(createResearch)
@@ -62,7 +62,7 @@ public class WriterResource {
                     .or().when(".review | startswith(\"AUTHOR\")").next(authorArticle).end()
                     .or().next(formatResearch)
                 .end().or().next(formatResearch)
-                .end() 
+                .end()
                 .build();
     }
 
@@ -71,90 +71,134 @@ public class WriterResource {
     @Path("article/topic/{topic}")
     public String hello(String topic) {
         try (StaticWorkflowApplication application = StaticWorkflowApplication.create()) {
-            JsonNode result = application.execute(workflow, Map.of("topic", topic, "counter", 0)).getWorkflowdata();
+            JsonNode result = application.execute(workflow, Map.of("topic", topic)).getWorkflowdata();
             System.out.println("Workflow execution result is " + result);
             return result.get("article").asText();
         }
     }
 
-    private int counter1 = 0;
-
     @POST
-    @Produces(MediaType.TEXT_PLAIN)
-    @Path("research/topic/{topic}")
-    public String createResearch(String topic) {
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("research/")
+    public ResearchInfo remoteCreateResearch(ResearchInfo info) {
+        String research = internalCreateResearch(info.getTopic(), info.getResearch(), info.getReview());
+        info.setResearch(research);
+        return info;
+    }
+
+    public Map<String,Object> createResearch(Map<String,Object> workflowData) {
+        String topic = (String) workflowData.get("topic");
+        String review = (String) workflowData.get("review");
+        String prev_research = (String) workflowData.get("research");
+        String research = internalCreateResearch(topic, prev_research, review);
+        workflowData.put("research", research);
+        return workflowData;
+    }
+
+    public String internalCreateResearch(String topic, String prev_research, String review) {
         String research;
-        switch (counter1++) {
-            case 0:
+        if (useLLM) {
+            research = researcher.doResearch(topic, prev_research, review);
+        } else {
+            if (prev_research == null || prev_research.trim().length() == 0) {
                 research = "My research about " + topic;
-                break;
-            case 1:
-                research = "More research about " + topic;
-                break;
-            case 2:
-                research = "Even more research about " + topic;
-                break;
-            default:
-                throw new IllegalArgumentException();
+            } else {
+                research = "More research based on review '" + review + "' and previous research '" + prev_research + "'";
+            }
         }
-        // creativeWriter.generateNovel(topic);
         Log.infof("Research: %s", research);
         return research;
     }
-    
+     
     @POST
-    @Consumes(MediaType.TEXT_PLAIN)
-    @Produces(MediaType.TEXT_PLAIN)
-    @Path("author/topic/{topic}")
-    public String authorArticle(String topic, String research) {
-        String article = "My article based on research " + research; // creativeWriter.generateNovel(topic);
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("author")
+    public ResearchInfo remoteAuthorArticle(ResearchInfo info) {
+        String article = internalAuthorArticle(info.getTopic(), info.getResearch(), info.getArticle(), info.getReview());
+        info.setArticle(article);
+        return info;
+    }
+
+    public Map<String,Object> authorArticle(Map<String,Object> workflowData) {
+        String topic = (String) workflowData.get("topic");
+        String review = (String) workflowData.get("review");
+        String research = (String) workflowData.get("research");
+        String prev_article = (String) workflowData.get("article");
+        String article = internalAuthorArticle(topic, research, prev_article, review);
+        workflowData.put("article", article);
+        return workflowData;
+    }
+
+    public String internalAuthorArticle(String topic, String research, String prev_article, String review) {
+        String article;
+        if (useLLM) {
+            article = author.writeBlog(topic, research, prev_article, review);
+        } else {
+            article = "My article based on research " + research;
+        }
         Log.infof("Article: %s", article);
         return article;
     }
     
-    public Map<String,Object> countAndReviewResearch(Map<String,Object> workflowData) {
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("review")
+    public ResearchInfo remoteReviewResearch(ResearchInfo info) {
+        String review = internalReviewArticle(info.getTopic(), info.getArticle());
+        info.setReview(review);
+        return info;
+    }
+
+    String[] reviews = { "RESEARCHER: Add more detail", "AUTHOR: use more precise language"};
+    Random random = new Random();
+    public Map<String,Object> reviewArticle(Map<String,Object> workflowData) {
+        String topic = (String) workflowData.get("topic");
         String article = (String) workflowData.get("article");
+        String review = internalReviewArticle(topic, article);
         Integer counter = (Integer) workflowData.get("counter");
-        String review = reviewResearch(article);
         workflowData.put("review", review);
-        workflowData.put("counter", counter+1);
+        workflowData.put("counter", counter == null ? 1 : counter+1);
         return workflowData;
     }
 
-    private int counter2 = 0;
-    @POST
-    @Consumes(MediaType.TEXT_PLAIN)
-    @Produces(MediaType.TEXT_PLAIN)
-    @Path("review")
-    public String reviewResearch(String article) {
+    public String internalReviewArticle(String topic, String article) {
         String review;
-        switch (counter2++) {
-            case 0:
-                review = "RESEARCHER: Add more detail";
-                break;
-            case 1:
-                review = "RESEARCHER: Add even more detail";
-                break;
-            case 2:
-                review = "AUTHOR: use more precise language";
-                break;
-            case 3:
-                review = "AUTHOR: asking too much, right?";
-                break;
-            default:
-                throw new IllegalArgumentException();
+        if (useLLM) {
+            review = reviewer.reviewBlog(topic, article);
+        } else {
+            review = reviews[random.nextInt(2)];
         }
-        // styleEditor.editNovel(novel, style);
         Log.infof("Review: %s", review);
         return review;
     }
 
     @POST
-    @Consumes(MediaType.TEXT_PLAIN)
-    @Produces(MediaType.TEXT_PLAIN)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("format")
-    public String formatResearch(String article) {
-        article = article + " formatted"; // audienceEditor.editNovel(novel, audience);
+    public ResearchInfo remoteFormatArticle(ResearchInfo info) {
+        String article = internalFormatArticle(info.getArticle());
+        info.setArticle(article);
+        return info;
+    }
+
+    public Map<String,Object> formatArticle(Map<String,Object> workflowData) {
+        String prev_article = (String) workflowData.get("article");
+        String article = internalFormatArticle(prev_article);
+        workflowData.put("article", article);
+        return workflowData;
+    }
+
+    public String internalFormatArticle(String prev_article) {
+        String article;
+        if (useLLM) {
+            article = formatter.format(prev_article, "Format in HTML, with a cool banner at the top introducing the blog. Pay attention to spacing. Replace asterisks with HTML formatting as appropriate.");
+        } else {
+            article = prev_article + " formatted";
+        }
         Log.infof("Formatted article: %s", article);
         return article;
     }
