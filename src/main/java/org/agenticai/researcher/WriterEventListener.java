@@ -36,7 +36,7 @@ public class WriterEventListener {
     }
 
 
-    @Incoming("request-review")
+    @Incoming("request-review-in")
     @Outgoing("result-review")
     @Blocking             
     public ResearchInfo process(ResearchInfo info) throws InterruptedException {
